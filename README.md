@@ -48,7 +48,7 @@ and is final project for the class_
 > #### About this project
 >
 > - The comments to make the code understandable, are within the .py archive
-> - This project was written in IDLE, Python’s Integrated Development and Learning Environment.
-> - This program runs for Python version 2.7
+> - This project was written in Anaconda's Spyder IDE.
+> - This program runs for Python version 3.7+
 > - This repository was created to show the variety of the work I did and experience I gained as a student
 >
