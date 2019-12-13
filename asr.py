@@ -7,8 +7,8 @@ import math
 from scipy.io import wavfile
 import sys
 
-#kai sto synolo ekpaideusis na ginei efarmogi FIR Filtrou
-#na ginei segmentation kai sto ekastote arxeio synolou ekpaideusis
+#and in the training set to apply Fir Filter
+#segmentation into the training set file as well
 def fir_band_pass(samples, fs, fL, fH, NL, NH, outputType):
     # Referece: https://fiiir.com
 
@@ -34,7 +34,7 @@ def fir_band_pass(samples, fs, fL, fH, NL, NH, outputType):
 
 def preprocessing (filename):
     
-    #deigmatolipsia sta 8000 --> input
+    #sampling at 8000 --> input
     y,s = librosa.load(filename,sr=8000) #alex/4digit.wav
     
     #input signal 
@@ -42,18 +42,18 @@ def preprocessing (filename):
     
     #duration of input signal
     dur = librosa.core.get_duration(y,s)
-    print("Arxiki diarkeia simatos hxou: ",dur)
+    print("Original audio signal duration: ",dur)
     
     #plot waveplot
     plt.figure(1)
-    plt.title('Kymatomorfi')
+    plt.title('Waveform')
     librosa.display.waveplot(y,s)
     
     #display sectrogram
     Y = librosa.stft(y)
     Yto_db = librosa.amplitude_to_db(abs(Y))
     plt.figure(2)
-    plt.title('Fasmatografima')
+    plt.title('Spectrograph')
     librosa.display.specshow(Yto_db,sr=s,x_axis='time',y_axis='hz')
     
     #filtered signal --> FIR filter
@@ -64,39 +64,39 @@ def preprocessing (filename):
     wavfile.write('filtered.wav',s, y)
     dur = librosa.core.get_duration(y,s)
     
-    print('Nea diarkeia hxou shmatos ystera apo filtrarisma: ', dur)
+    print('New signal sound duration after filtering: ', dur)
     
-    #rythmos dieleyeshs apo to 0
+    #pass rate from 0
     zero_cros_rate = librosa.feature.zero_crossing_rate(y,frame_length,frame_step)[0]
-    #pososto rythmou dieleyshs apo to 0
+    #pass rate from 0
     zero_cros_rate = zero_cros_rate*100
     
-    #energeia vraxeos xronou
+    #short time energy
     energy_of_signal = np.array([sum(abs(y[i:i+frame_length]**2))
     for i in range(0, len(y),frame_step)])
-    #logarithmos energeias vraxeos xronou
+    #logarithm of short time energy
     logEnergy = np.array([math.log(energy_of_signal[i])
     for i in range(0, len(energy_of_signal))])
 
-    #mesi timi rythmou dieleyshs apo 0 gia ta 10 prwta plaisia
+    #average pass rate from 0 for the first 10 frames
     zcavg= np.mean(zero_cros_rate[:10])
-    #mesi timi logarithmikis energeias gia ta 10 prwta plaisia
+    #average logarithmic energy value for the first 10 frames
     eavg = np.mean(logEnergy[:10]) 
 
-    #typiki apoklisi logarithmikis energeias
+    #standard deviation of logarithmic energy
     esig = np.std(logEnergy[:10])
-    #typiki apoklisi rythmou dieleusis apo to 0
+    #standard deviation of pass rate from 0
     zcsig = np.std(zero_cros_rate[:10])
     
     plt.figure(3)
     plt.plot(logEnergy)
-    plt.xlabel('Plaisia')
-    plt.ylabel('Logarithmos vraxeos xronou energeias')
+    plt.xlabel('Frames')
+    plt.ylabel('Short time energy logarithm')
     
     plt.figure(4)
     plt.plot(zero_cros_rate)
-    plt.xlabel('Plaisia')
-    plt.ylabel('Rythmos dieleusis apo to 0')
+    plt.xlabel('Frames')
+    plt.ylabel('Pass rate from 0')
     
     return y
 
@@ -146,16 +146,16 @@ def segmentation_multiple_digits(y,frame_length,frame_step,s):
         
     onset_samples = librosa.time_to_samples(merged_onset_times,sr=s)
     
-    #fasmatografima me detected onset spots
+    #spectrograph with detected onset spots
     plt.figure(5)
-    plt.title('Fasmatografima me shmeia pou proekupsan apo onset')
+    plt.title('Spectroscopy with points resulting from onset')
     Y = librosa.stft(y)
     Yto_db = librosa.amplitude_to_db(abs(Y))
     librosa.display.specshow(Yto_db,sr=s,x_axis='time',y_axis='hz')
     plt.vlines(merged_onset_times, 0, 10000, color='k')
     
     i=0
-    #arithmos valid pshfiwn apo onset detection
+    #number of valid digits from onset detection
     numbSongs=0
     song = {}
     while (i < len(onset_samples)):
@@ -167,15 +167,15 @@ def segmentation_multiple_digits(y,frame_length,frame_step,s):
         i+=2
     #song[numbSongs] = y[onset_samples[-1]:]#ipd.Audio(y[onset_samples[-1]:],rate = s)
     
-    print('Synolo psifiwn: ',len(song))
+    print('Total digits: ',len(song))
     
     return song
 
-def synolo_ekpaideusis(labels,where,who):
+def training_set(labels,where,who):
     j=0
     signals={}
     #for i in range(len(labels)):
-    #gia 0-9 psifia pou yparxoun
+    #0-9 digits that exist
 	for i in range(10):
         for name in who:
             #from db
@@ -214,12 +214,12 @@ def cross_validation(labels):
          
 	print('Rec rate {}%'.format(100.* score/len(test)))
 
-def anagnwrisi(digits,s,frame_length,syn_ekp):
+def recognition(digits,s,frame_length,syn_ekp):
 
-    #gia figures
+    #for figures
     k=6
     j=0
-    #gia kathe psifio INPUT thelw na to sugkrineis me to synolo EKPAIDEUSIS
+    #for each input digit I want to compare it with the training set
     while j<len(digits):
         #compute mfcc for INPUT SIGNAL. (each digit from input)
         mfcc_input = librosa.feature.mfcc(digits[j], s,hop_length=frame_length, n_mfcc=13) #number of mfcc set to 13
@@ -236,12 +236,12 @@ def anagnwrisi(digits,s,frame_length,syn_ekp):
         '''
         Dnew = []
         mfccs= []
-        #apo 0 ews 9 synolou ekpaideusis
+        #0-9 from training set
         for i in range(len(syn_ekp)):
              syn_ekp[i] = fir_band_pass(syn_ekp[i],s,200,4000,100,100,np.float32)
-             #MFCC gia kathe psifio apo to synolo ekpaideusis
+             #MFCC for each digit from the training set
              mfcc = librosa.feature.mfcc(syn_ekp[i],s,hop_length=80,n_mfcc=13)
-             #logarithmisi twn features ADDEED
+             #logarithm of the features ADDEED
              mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
              #apply dtw
              D,wp =librosa.core.dtw(X=mfcc_input_mag,Y=mfcc_mag,metric='euclidean',backtrack=True)
@@ -273,17 +273,17 @@ s = 8000
 L = 0.03
 #frame_step
 R = 0.01
-#mikos plaisiou kai vima olisthisis
+#frame length and sliding step
 frame_length, frame_step = round(L * s), round(R * s)  # Convert from seconds to samples
 
 
 y = preprocessing(input('Please enter a filename for input signal: '))
 digits = segmentation_multiple_digits(y,frame_length,frame_step,s)
 
-#onomasia arxeiwn synolou ekpaideusis
+#naming training set files
 with  open("tags.txt") as f:
     labels = np.array([l.replace('\n','') for l in f.readlines()])
 
-syn_ekp =  synolo_ekpaideusis(labels,'ekp',['a','p','n'])
-anagnwrisi(digits,s,frame_length,syn_ekp)
+t_set =  training_set(labels,'ekp',['a','p','n'])
+recognision(digits,s,frame_length,t_set)
 cross_validation(labels)
